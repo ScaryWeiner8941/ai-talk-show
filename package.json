@@ -1,0 +1,22 @@
+{
+  "name": "ai-talk-show",
+  "version": "1.0.0",
+  "description": "AI Talk Show - Interactive AI Conversations",
+  "main": "index.js",
+  "scripts": {
+    "dev": "vercel dev",
+    "build": "echo 'No build step required'",
+    "start": "vercel --prod"
+  },
+  "keywords": ["ai", "conversation", "talk-show", "claude", "chatgpt", "gemini"],
+  "author": "Your Name",
+  "license": "MIT",
+  "dependencies": {
+    "jsonwebtoken": "^9.0.2",
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

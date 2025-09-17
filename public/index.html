@@ -1,0 +1,978 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ConvoPlay</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Inter', sans-serif;
+            background: #1a1d29;
+            color: #ffffff;
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 60px;
+        }
+        
+        .logo {
+            font-size: 3.5em;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            margin-bottom: 20px;
+            background: linear-gradient(135deg, #ffffff 0%, #a0a0a0 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .tagline {
+            font-size: 1.1em;
+            color: #8b8b8b;
+            line-height: 1.6;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+        
+        /* Password Gate Styles */
+        .password-gate {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 60vh;
+        }
+        
+        .password-form {
+            background: #222533;
+            border: 1.5px solid #3a3d4a;
+            border-radius: 16px;
+            padding: 40px;
+            max-width: 400px;
+            width: 100%;
+            text-align: center;
+        }
+        
+        .password-title {
+            font-size: 1.4em;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #ffffff;
+        }
+        
+        .password-subtitle {
+            color: #8b8b8b;
+            margin-bottom: 30px;
+            font-size: 0.9em;
+        }
+        
+        .form-group {
+            margin-bottom: 30px;
+        }
+        
+        .form-label {
+            display: block;
+            font-size: 0.95em;
+            font-weight: 500;
+            margin-bottom: 12px;
+            color: #ffffff;
+            letter-spacing: 0.01em;
+            text-align: left;
+        }
+        
+        .form-input, .form-select {
+            width: 100%;
+            padding: 16px 20px;
+            background: #2a2d3a;
+            border: 1.5px solid #3a3d4a;
+            border-radius: 12px;
+            color: #ffffff;
+            font-size: 1em;
+            transition: all 0.2s ease;
+            outline: none;
+        }
+        
+        .form-input:focus, .form-select:focus {
+            border-color: #d2691e;
+            background: #2f3240;
+            box-shadow: 0 0 0 3px rgba(210, 105, 30, 0.1);
+        }
+        
+        .form-input::placeholder {
+            color: #6b6b6b;
+        }
+        
+        .form-select {
+            cursor: pointer;
+        }
+        
+        .btn {
+            padding: 14px 32px;
+            border: none;
+            border-radius: 12px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-width: 120px;
+            justify-content: center;
+            width: 100%;
+        }
+        
+        .btn-primary {
+            background: #d2691e;
+            color: white;
+        }
+        
+        .btn-primary:hover:not(:disabled) {
+            background: #bf5e1a;
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(210, 105, 30, 0.3);
+        }
+        
+        .btn-secondary {
+            background: #4a4d5a;
+            color: #ffffff;
+        }
+        
+        .btn-secondary:hover:not(:disabled) {
+            background: #5a5d6a;
+            transform: translateY(-1px);
+        }
+        
+        .btn-reset {
+            background: transparent;
+            border: 1.5px solid #4a4d5a;
+            color: #ffffff;
+        }
+        
+        .btn-reset:hover:not(:disabled) {
+            border-color: #6a6d7a;
+            background: rgba(74, 77, 90, 0.2);
+        }
+        
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+            box-shadow: none !important;
+        }
+        
+        .error-message {
+            color: #ef4444;
+            font-size: 0.9em;
+            margin-top: 10px;
+            text-align: center;
+        }
+        
+        .success-message {
+            color: #10b981;
+            font-size: 0.9em;
+            margin-top: 10px;
+            text-align: center;
+        }
+        
+        /* Main App Styles */
+        .main-app {
+            display: none;
+        }
+        
+        .controls {
+            margin-bottom: 40px;
+        }
+        
+        .button-row {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin-top: 40px;
+        }
+        
+        .transcription-section {
+            margin-top: 60px;
+        }
+        
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .section-title {
+            font-size: 1.4em;
+            font-weight: 600;
+            color: #ffffff;
+        }
+        
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9em;
+            color: #8b8b8b;
+        }
+        
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #4caf50;
+        }
+        
+        .status-dot.paused {
+            background: #ff9800;
+        }
+        
+        .status-dot.ready {
+            background: #4caf50;
+        }
+        
+        .transcription-area {
+            background: #222533;
+            border: 1.5px solid #3a3d4a;
+            border-radius: 16px;
+            padding: 30px;
+            min-height: 500px;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+        
+        .empty-state {
+            text-align: center;
+            color: #6b6b6b;
+            font-size: 1em;
+            padding: 60px 20px;
+            line-height: 1.6;
+        }
+        
+        .message {
+            margin-bottom: 24px;
+            padding: 20px 24px;
+            border-radius: 16px;
+            position: relative;
+            animation: slideIn 0.4s ease-out;
+            max-width: 85%;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(15px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .message.host {
+            background: linear-gradient(135deg, #2d3748 0%, #4a5568 100%);
+            margin-right: auto;
+            border-left: 4px solid #f7fafc;
+        }
+        
+        .message.claude {
+            background: linear-gradient(135deg, #065f46 0%, #047857 100%);
+            margin-left: auto;
+            border-left: 4px solid #10b981;
+        }
+        
+        .message.chatgpt {
+            background: linear-gradient(135deg, #1e3a8a 0%, #1d4ed8 100%);
+            margin-right: auto;
+            border-left: 4px solid #3b82f6;
+        }
+        
+        .message.gemini {
+            background: linear-gradient(135deg, #7c2d12 0%, #dc2626 100%);
+            margin-left: auto;
+            border-left: 4px solid #ef4444;
+        }
+        
+        .speaker-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+            font-weight: 600;
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+        
+        .speaker-avatar {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7em;
+            font-weight: bold;
+        }
+        
+        .speaker-avatar.host { background: #f7fafc; color: #2d3748; }
+        .speaker-avatar.claude { background: #10b981; color: white; }
+        .speaker-avatar.chatgpt { background: #3b82f6; color: white; }
+        .speaker-avatar.gemini { background: #ef4444; color: white; }
+        
+        .message-content {
+            line-height: 1.6;
+            font-size: 0.95em;
+        }
+        
+        .thinking {
+            text-align: center;
+            color: #8b8b8b;
+            font-style: italic;
+            padding: 30px;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 0.6; }
+            50% { opacity: 1; }
+        }
+        
+        /* Icons */
+        .icon {
+            width: 16px;
+            height: 16px;
+            display: inline-block;
+        }
+        
+        @media (max-width: 768px) {
+            .button-row {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .btn {
+                min-width: 200px;
+            }
+            
+            .message {
+                max-width: 95%;
+            }
+            
+            .logo {
+                font-size: 2.5em;
+            }
+            
+            .password-form {
+                padding: 30px 20px;
+            }
+        }
+        
+        /* Custom scrollbar */
+        .transcription-area::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .transcription-area::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        
+        .transcription-area::-webkit-scrollbar-thumb {
+            background: #4a4d5a;
+            border-radius: 3px;
+        }
+        
+        .transcription-area::-webkit-scrollbar-thumb:hover {
+            background: #5a5d6a;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1 class="logo">AI Talk Show</h1>
+            <p class="tagline">Experience immersive AI conversations in an audiobook-style interface</p>
+        </div>
+        
+        <!-- Password Gate -->
+        <div id="passwordGate" class="password-gate">
+            <div class="password-form">
+                <h2 class="password-title">🔐 Secure Access</h2>
+                <p class="password-subtitle">Enter your credentials to access the AI Talk Show platform</p>
+                
+                <div class="form-group">
+                    <label class="form-label" for="passwordInput">Password</label>
+                    <input 
+                        type="password" 
+                        id="passwordInput" 
+                        class="form-input" 
+                        placeholder="Enter password..."
+                        autocomplete="current-password"
+                    >
+                </div>
+                
+                <button id="loginBtn" class="btn btn-primary">
+                    🚀 Access Application
+                </button>
+                
+                <div id="passwordError" class="error-message" style="display: none;"></div>
+                <div id="passwordSuccess" class="success-message" style="display: none;"></div>
+            </div>
+        </div>
+        
+        <!-- Main Application (Hidden until authenticated) -->
+        <div id="mainApp" class="main-app">
+            <div class="controls">
+                <div class="form-group">
+                    <label class="form-label" for="topic">Conversation Topic</label>
+                    <input 
+                        type="text" 
+                        id="topic" 
+                        class="form-input" 
+                        placeholder="Enter a topic for your AI conversation..."
+                    >
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label" for="mode">Conversation Type</label>
+                    <select id="mode" class="form-select">
+                        <option value="debate">Debate</option>
+                        <option value="collaboration">Collaboration</option>
+                        <option value="analysis">Analysis</option>
+                        <option value="comedy">Comedy</option>
+                    </select>
+                </div>
+                
+                <div class="button-row">
+                    <button id="startBtn" class="btn btn-primary">
+                        ▶ START
+                    </button>
+                    <button id="pauseBtn" class="btn btn-secondary" disabled>
+                        ⏸ PAUSE
+                    </button>
+                    <button id="resetBtn" class="btn btn-reset">
+                        ↻ RESET
+                    </button>
+                    <button id="logoutBtn" class="btn btn-reset">
+                        🚪 LOGOUT
+                    </button>
+                </div>
+            </div>
+            
+            <div class="transcription-section">
+                <div class="section-header">
+                    <h2 class="section-title">Live Transcription</h2>
+                    <div class="status-indicator">
+                        <div class="status-dot ready" id="statusDot"></div>
+                        <span id="statusText">Ready</span>
+                    </div>
+                </div>
+                
+                <div class="transcription-area" id="transcriptionArea">
+                    <div class="empty-state">
+                        Your AI conversation will appear here once you click START
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let authToken = null;
+        let isAuthenticated = false;
+        let sessionTimeout;
+        
+        // AI Talk Show Variables
+        let isRunning = false;
+        let isPaused = false;
+        let currentTurn = 0;
+        let maxTurns = 12;
+        let conversation = [];
+        
+        const speakers = ['claude', 'chatgpt', 'gemini'];
+        const speakerNames = {
+            'host': 'Host',
+            'claude': 'Claude',
+            'chatgpt': 'ChatGPT', 
+            'gemini': 'Gemini'
+        };
+        
+        const speakerAvatars = {
+            'host': 'H',
+            'claude': 'C',
+            'chatgpt': 'G', 
+            'gemini': 'G'
+        };
+        
+        // API Configuration
+        const API_BASE = window.location.origin;
+        
+        // Authentication Functions
+        async function authenticateWithBackend(password) {
+            try {
+                const response = await fetch(`${API_BASE}/api/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ password })
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error || 'Authentication failed');
+                }
+                
+                return data;
+            } catch (error) {
+                console.error('Authentication error:', error);
+                throw error;
+            }
+        }
+        
+        async function verifyToken(token) {
+            try {
+                const response = await fetch(`${API_BASE}/api/auth/verify`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ token })
+                });
+                
+                const data = await response.json();
+                return response.ok && data.valid;
+            } catch (error) {
+                console.error('Token verification error:', error);
+                return false;
+            }
+        }
+        
+        // Password Gate Functions
+        function initializePasswordGate() {
+            const passwordInput = document.getElementById('passwordInput');
+            const loginBtn = document.getElementById('loginBtn');
+            const passwordError = document.getElementById('passwordError');
+            const passwordSuccess = document.getElementById('passwordSuccess');
+            
+            // Check if already authenticated (session storage)
+            const storedToken = sessionStorage.getItem('talkshow_token');
+            if (storedToken) {
+                verifyStoredToken(storedToken);
+                return;
+            }
+            
+            // Handle password input
+            passwordInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    attemptLogin();
+                }
+            });
+            
+            loginBtn.addEventListener('click', attemptLogin);
+            
+            async function attemptLogin() {
+                const enteredPassword = passwordInput.value.trim();
+                
+                if (!enteredPassword) {
+                    showError('Please enter a password');
+                    return;
+                }
+                
+                loginBtn.disabled = true;
+                loginBtn.innerHTML = '🔄 Authenticating...';
+                
+                try {
+                    const result = await authenticateWithBackend(enteredPassword);
+                    
+                    if (result.success && result.token) {
+                        authToken = result.token;
+                        sessionStorage.setItem('talkshow_token', authToken);
+                        
+                        showSuccess('Access granted! Loading application...');
+                        
+                        setTimeout(() => {
+                            authenticateUser();
+                        }, 1000);
+                    } else {
+                        throw new Error('Invalid response from server');
+                    }
+                } catch (error) {
+                    showError(error.message || 'Authentication failed. Please try again.');
+                    passwordInput.value = '';
+                    passwordInput.focus();
+                } finally {
+                    loginBtn.disabled = false;
+                    loginBtn.innerHTML = '🚀 Access Application';
+                }
+            }
+            
+            async function verifyStoredToken(token) {
+                const isValid = await verifyToken(token);
+                
+                if (isValid) {
+                    authToken = token;
+                    authenticateUser();
+                } else {
+                    sessionStorage.removeItem('talkshow_token');
+                    showError('Session expired. Please log in again.');
+                }
+            }
+            
+            function showError(message) {
+                passwordError.textContent = message;
+                passwordError.style.display = 'block';
+                passwordSuccess.style.display = 'none';
+                
+                setTimeout(() => {
+                    passwordError.style.display = 'none';
+                }, 5000);
+            }
+            
+            function showSuccess(message) {
+                passwordSuccess.textContent = message;
+                passwordSuccess.style.display = 'block';
+                passwordError.style.display = 'none';
+            }
+        }
+        
+        function authenticateUser() {
+            isAuthenticated = true;
+            document.getElementById('passwordGate').style.display = 'none';
+            document.getElementById('mainApp').style.display = 'block';
+            
+            // Set session timeout (24 hours)
+            resetSessionTimeout();
+            
+            // Initialize main application
+            initializeMainApp();
+        }
+        
+        function logout() {
+            isAuthenticated = false;
+            authToken = null;
+            sessionStorage.removeItem('talkshow_token');
+            clearTimeout(sessionTimeout);
+            
+            // Reset application state
+            resetShow();
+            
+            // Show password gate
+            document.getElementById('passwordGate').style.display = 'block';
+            document.getElementById('mainApp').style.display = 'none';
+            
+            // Clear password input
+            document.getElementById('passwordInput').value = '';
+            document.getElementById('passwordInput').focus();
+        }
+        
+        function resetSessionTimeout() {
+            clearTimeout(sessionTimeout);
+            
+            // Auto-logout after 24 hours of inactivity
+            sessionTimeout = setTimeout(() => {
+                alert('Session expired due to inactivity. Please log in again.');
+                logout();
+            }, 24 * 60 * 60 * 1000); // 24 hours
+        }
+        
+        // AI API Functions
+        async function callAIBackend(speaker, prompt) {
+            try {
+                if (!authToken) {
+                    throw new Error('No authentication token');
+                }
+                
+                const endpoint = `${API_BASE}/api/ai/${speaker}`;
+                
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({ 
+                        prompt,
+                        maxTokens: 300 
+                    })
+                });
+                
+                if (response.status === 401) {
+                    // Token expired or invalid
+                    logout();
+                    throw new Error('Authentication expired');
+                }
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error || 'API call failed');
+                }
+                
+                return data.response;
+            } catch (error) {
+                console.error(`Error calling ${speaker} API:`, error);
+                throw error;
+            }
+        }
+        
+        // Main Application Functions
+        function initializeMainApp() {
+            document.getElementById('startBtn').addEventListener('click', startShow);
+            document.getElementById('pauseBtn').addEventListener('click', pauseShow);
+            document.getElementById('resetBtn').addEventListener('click', resetShow);
+            document.getElementById('logoutBtn').addEventListener('click', logout);
+            
+            // Reset session timeout on any user activity
+            document.addEventListener('click', resetSessionTimeout);
+            document.addEventListener('keypress', resetSessionTimeout);
+        }
+        
+        function updateStatus(status, text) {
+            const dot = document.getElementById('statusDot');
+            const statusText = document.getElementById('statusText');
+            
+            dot.className = `status-dot ${status}`;
+            statusText.textContent = text;
+        }
+        
+        function startShow() {
+            if (!isAuthenticated) {
+                alert('Authentication required');
+                logout();
+                return;
+            }
+            
+            const topic = document.getElementById('topic').value.trim();
+            const mode = document.getElementById('mode').value;
+            
+            if (!topic) {
+                alert('Please enter a discussion topic!');
+                return;
+            }
+            
+            if (isPaused) {
+                // Resume from pause
+                isPaused = false;
+                isRunning = true;
+                document.getElementById('startBtn').disabled = true;
+                document.getElementById('pauseBtn').disabled = false;
+                updateStatus('ready', 'Running');
+                
+                setTimeout(() => {
+                    nextAIResponse(topic, mode);
+                }, 1000);
+                return;
+            }
+            
+            isRunning = true;
+            isPaused = false;
+            currentTurn = 0;
+            conversation = [];
+            
+            document.getElementById('startBtn').disabled = true;
+            document.getElementById('pauseBtn').disabled = false;
+            document.getElementById('topic').disabled = true;
+            document.getElementById('mode').disabled = true;
+            
+            updateStatus('ready', 'Running');
+            
+            // Clear transcription area
+            document.getElementById('transcriptionArea').innerHTML = '';
+            
+            // Host introduction
+            addMessage('host', `Welcome to AI Talk Show! Today we're exploring: "${topic}" in ${mode} mode. Let's hear what our AI guests have to say!`);
+            
+            // Start AI conversation
+            setTimeout(() => {
+                nextAIResponse(topic, mode);
+            }, 2000);
+        }
+        
+        function pauseShow() {
+            isPaused = true;
+            isRunning = false;
+            
+            document.getElementById('startBtn').disabled = false;
+            document.getElementById('pauseBtn').disabled = true;
+            document.getElementById('startBtn').innerHTML = '▶ RESUME';
+            
+            updateStatus('paused', 'Paused');
+            
+            // Remove thinking indicator if present
+            removeThinking();
+            addMessage('host', 'Conversation paused. Click "RESUME" to continue the discussion.');
+        }
+        
+        function resetShow() {
+            isRunning = false;
+            isPaused = false;
+            currentTurn = 0;
+            conversation = [];
+            
+            document.getElementById('startBtn').disabled = false;
+            document.getElementById('pauseBtn').disabled = true;
+            document.getElementById('topic').disabled = false;
+            document.getElementById('mode').disabled = false;
+            document.getElementById('topic').value = '';
+            document.getElementById('mode').value = 'debate';
+            document.getElementById('startBtn').innerHTML = '▶ START';
+            
+            updateStatus('ready', 'Ready');
+            
+            // Clear transcription area
+            document.getElementById('transcriptionArea').innerHTML = '<div class="empty-state">Your AI conversation will appear here once you click START</div>';
+            
+            // Remove thinking indicator if present
+            removeThinking();
+        }
+        
+        async function nextAIResponse(topic, mode) {
+            if (!isAuthenticated) {
+                logout();
+                return;
+            }
+            
+            if (!isRunning || isPaused || currentTurn >= maxTurns) {
+                if (currentTurn >= maxTurns && isRunning) {
+                    updateStatus('ready', 'Completed');
+                    addMessage('host', 'Thank you for experiencing AI Talk Show! The conversation has reached its natural conclusion.');
+                    setTimeout(resetShow, 3000);
+                }
+                return;
+            }
+            
+            const currentSpeaker = speakers[currentTurn % speakers.length];
+            
+            // Show thinking indicator
+            showThinking(currentSpeaker);
+            
+            try {
+                const prompt = buildPrompt(topic, mode, currentSpeaker);
+                const response = await callAIBackend(currentSpeaker, prompt);
+                
+                // Remove thinking indicator
+                removeThinking();
+                
+                // Add AI response
+                addMessage(currentSpeaker, response);
+                
+                currentTurn++;
+                
+                // Schedule next response
+                if (isRunning && !isPaused && currentTurn < maxTurns) {
+                    setTimeout(() => {
+                        nextAIResponse(topic, mode);
+                    }, 3000);
+                } else if (currentTurn >= maxTurns) {
+                    updateStatus('ready', 'Completed');
+                    addMessage('host', 'Thank you for experiencing AI Talk Show! The conversation has reached its natural conclusion.');
+                    setTimeout(resetShow, 5000);
+                }
+                
+            } catch (error) {
+                removeThinking();
+                addMessage('host', `${speakerNames[currentSpeaker]} encountered a connection issue. Continuing with the next speaker.`);
+                
+                currentTurn++;
+                if (isRunning && !isPaused && currentTurn < maxTurns) {
+                    setTimeout(() => {
+                        nextAIResponse(topic, mode);
+                    }, 2000);
+                }
+            }
+        }
+        
+        function buildPrompt(topic, mode, speaker) {
+            const context = conversation.slice(-4).map(msg => `${msg.speaker}: ${msg.content}`).join('\n');
+            
+            return `Mode: ${mode}
+Topic: ${topic}
+
+Recent conversation:
+${context}
+
+Your turn as ${speakerNames[speaker]}. Reply concisely (max 2-3 sentences) and engage meaningfully with the topic. ${mode === 'debate' ? 'Take a clear position and present compelling arguments.' : mode === 'collaboration' ? 'Build constructively on previous points and find common ground.' : mode === 'analysis' ? 'Provide deep analytical insights and thoughtful perspectives.' : 'Add humor and wit while staying relevant to the topic.'}`;
+        }
+        
+        function addMessage(speaker, content) {
+            conversation.push({ speaker: speakerNames[speaker], content });
+            
+            const transcriptionArea = document.getElementById('transcriptionArea');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${speaker}`;
+            
+            messageDiv.innerHTML = `
+                <div class="speaker-info">
+                    <div class="speaker-avatar ${speaker}">${speakerAvatars[speaker]}</div>
+                    <span>${speakerNames[speaker]}</span>
+                </div>
+                <div class="message-content">${content}</div>
+            `;
+            
+            transcriptionArea.appendChild(messageDiv);
+            transcriptionArea.scrollTop = transcriptionArea.scrollHeight;
+        }
+        
+        function showThinking(speaker) {
+            const transcriptionArea = document.getElementById('transcriptionArea');
+            const thinkingDiv = document.createElement('div');
+            thinkingDiv.className = 'thinking';
+            thinkingDiv.id = 'thinking-indicator';
+            thinkingDiv.innerHTML = `${speakerNames[speaker]} is formulating a response...`;
+            
+            transcriptionArea.appendChild(thinkingDiv);
+            transcriptionArea.scrollTop = transcriptionArea.scrollHeight;
+        }
+        
+        function removeThinking() {
+            const thinking = document.getElementById('thinking-indicator');
+            if (thinking) {
+                thinking.remove();
+            }
+        }
+        
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', function() {
+            initializePasswordGate();
+        });
+        
+        // Handle page visibility changes (security feature)
+        document.addEventListener('visibilitychange', function() {
+            if (document.hidden && isAuthenticated) {
+                resetSessionTimeout();
+            }
+        });
+        
+        // Security measures
+        document.addEventListener('contextmenu', function(e) {
+            e.preventDefault();
+        });
+        
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'F12' || 
+                (e.ctrlKey && e.shiftKey && e.key === 'I') ||
+                (e.ctrlKey && e.shiftKey && e.key === 'C') ||
+                (e.ctrlKey && e.key === 'u')) {
+                e.preventDefault();
+            }
+        });
+    </script>
+</body>
+</html>
