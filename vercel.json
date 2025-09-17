@@ -1,6 +1,8 @@
 {
-  "version": 2,
   "functions": {
-    "api/**/*.{js,ts}": { "runtime": "nodejs18.x" }
+    "api/**/*.{js,ts,mjs}": {
+      "runtime": "nodejs20.x",
+      "maxDuration": 30
+    }
   }
 }
