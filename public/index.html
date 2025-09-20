@@ -35,9 +35,13 @@
         .avatar.claude { background: #10b981; color: white; }
         .avatar.chatgpt { background: #3b82f6; color: white; }
         .avatar.gemini { background: #ef4444; color: white; }
-        .thinking { text-align: center; color: #8b8b8b; font-style: italic; padding: 20px; }
+        .thinking { text-align: center; color: #8b8b8b; font-style: italic; padding: 20px; animation: pulse 2s infinite; }
         .replay-btn { position: absolute; top: 8px; right: 8px; background: rgba(255,255,255,0.1); border: none; color: white; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.8em; }
         .replay-btn:hover { background: rgba(255,255,255,0.2); }
+        .status { margin-top: 10px; padding: 10px; border-radius: 6px; font-size: 0.9em; }
+        .status.success { background: #065f46; color: #10b981; }
+        .status.error { background: #7c2d12; color: #ef4444; }
+        .status.info { background: #1e3a8a; color: #3b82f6; }
     </style>
 </head>
 <body>
@@ -46,6 +50,8 @@
             <h1 class="logo">AI Talk Show</h1>
             <p style="color: #8b8b8b; margin-top: 10px;">🎙️ Experience immersive AI conversations with voice</p>
         </div>
+        
+        <div id="statusArea"></div>
         
         <div class="form-group">
             <label class="form-label">Conversation Topic</label>
@@ -102,6 +108,14 @@
             host: { rate: 0.95, pitch: 1.0, voiceIndex: 0 }
         };
 
+        function showStatus(message, type = 'info') {
+            const statusArea = document.getElementById('statusArea');
+            statusArea.innerHTML = `<div class="status ${type}">${message}</div>`;
+            if (type !== 'error') {
+                setTimeout(() => statusArea.innerHTML = '', 3000);
+            }
+        }
+
         // Text-to-speech function
         function speak(text, speaker = 'host') {
             if (!voiceEnabled || !('speechSynthesis' in window)) return;
@@ -151,17 +165,25 @@
 
         async function authenticate(password) {
             try {
-                const response = await fetch('/api/auth', {
+                showStatus('Authenticating...', 'info');
+                const response = await fetch('/api/auth/login', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ password })
                 });
-                if (!response.ok) throw new Error('Invalid password');
+                
                 const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error || 'Authentication failed');
+                }
+                
                 authToken = data.token;
+                showStatus('Authentication successful!', 'success');
                 return true;
             } catch (error) {
-                throw new Error('Authentication failed');
+                showStatus(`Authentication failed: ${error.message}`, 'error');
+                throw error;
             }
         }
 
@@ -175,6 +197,8 @@
                     default: throw new Error('Unknown speaker');
                 }
                 
+                showStatus(`Getting response from ${speakerNames[speaker]}...`, 'info');
+                
                 const response = await fetch(endpoint, {
                     method: 'POST',
                     headers: { 
@@ -184,14 +208,16 @@
                     body: JSON.stringify({ prompt })
                 });
                 
+                const data = await response.json();
+                
                 if (!response.ok) {
-                    const errorData = await response.json().catch(() => ({}));
-                    throw new Error(errorData.error || `API failed: ${response.status}`);
+                    throw new Error(data.error || `API failed: ${response.status}`);
                 }
                 
-                const data = await response.json();
+                document.getElementById('statusArea').innerHTML = ''; // Clear status on success
                 return data.response;
             } catch (error) {
+                showStatus(`Error from ${speakerNames[speaker]}: ${error.message}`, 'error');
                 throw error;
             }
         }
@@ -220,7 +246,7 @@ Your turn as ${speakerNames[speaker]}. Reply concisely (max 2-3 sentences) and e
             const mode = document.getElementById('mode').value;
             
             if (!topic) {
-                alert('Please enter a discussion topic!');
+                showStatus('Please enter a discussion topic!', 'error');
                 return;
             }
             
@@ -238,14 +264,16 @@ Your turn as ${speakerNames[speaker]}. Reply concisely (max 2-3 sentences) and e
                 return;
             }
             
-            const password = prompt('Enter password:');
-            if (!password) return;
-            
-            try {
-                await authenticate(password);
-            } catch (error) {
-                alert('Invalid password');
-                return;
+            // Only ask for password if not already authenticated
+            if (!authToken) {
+                const password = prompt('Enter password (hint: ConvoPlay2025!):');
+                if (!password) return;
+                
+                try {
+                    await authenticate(password);
+                } catch (error) {
+                    return;
+                }
             }
             
             isRunning = true;
@@ -293,7 +321,7 @@ Your turn as ${speakerNames[speaker]}. Reply concisely (max 2-3 sentences) and e
                 if (isRunning && !isPaused && currentTurn < maxTurns) {
                     setTimeout(() => {
                         nextAIResponse(topic, mode);
-                    }, 3000);
+                    }, 4000); // Slightly longer delay for better pacing
                 } else if (currentTurn >= maxTurns) {
                     const endMsg = 'Thank you for experiencing AI Talk Show! The conversation has reached its natural conclusion.';
                     addMessage('host', endMsg);
@@ -302,7 +330,7 @@ Your turn as ${speakerNames[speaker]}. Reply concisely (max 2-3 sentences) and e
                 
             } catch (error) {
                 removeThinking();
-                addMessage('host', `${speakerNames[currentSpeaker]} encountered an issue: ${error.message}`);
+                addMessage('host', `${speakerNames[currentSpeaker]} encountered an issue. Continuing with the next speaker.`);
                 currentTurn++;
                 if (isRunning && !isPaused && currentTurn < maxTurns) {
                     setTimeout(() => {
@@ -317,20 +345,23 @@ Your turn as ${speakerNames[speaker]}. Reply concisely (max 2-3 sentences) and e
             
             const div = document.createElement('div');
             div.className = `message ${speaker}`;
+            
+            const avatarChar = speaker === 'host' ? 'H' : speaker === 'claude' ? 'C' : speaker === 'chatgpt' ? 'G' : 'G';
+            
             div.innerHTML = `
                 <div class="speaker">
-                    <div class="avatar ${speaker}">${speaker === 'host' ? 'H' : speaker === 'claude' ? 'C' : 'G'}</div>
+                    <div class="avatar ${speaker}">${avatarChar}</div>
                     ${speakerNames[speaker]}
                 </div>
                 ${content}
-                ${speaker !== 'host' ? `<button class="replay-btn" onclick="speak('${content.replace(/'/g, "\\'")}', '${speaker}')">🔊</button>` : ''}
+                ${speaker !== 'host' ? `<button class="replay-btn" onclick="speak(\`${content.replace(/`/g, '\\`')}\`, '${speaker}')">🔊</button>` : ''}
             `;
             document.getElementById('transcriptionArea').appendChild(div);
             document.getElementById('transcriptionArea').scrollTop = document.getElementById('transcriptionArea').scrollHeight;
             
-            // Auto-speak the message (except for host intro)
+            // Auto-speak the message with a slight delay
             if (voiceEnabled && speaker !== 'host') {
-                setTimeout(() => speak(content, speaker), 500);
+                setTimeout(() => speak(content, speaker), 800);
             } else if (speaker === 'host' && content.includes('Welcome to AI Talk Show')) {
                 setTimeout(() => speak(content, speaker), 500);
             }
@@ -361,6 +392,7 @@ Your turn as ${speakerNames[speaker]}. Reply concisely (max 2-3 sentences) and e
             removeThinking();
             addMessage('host', 'Conversation paused. Click "RESUME" to continue the discussion.');
             stopSpeech();
+            showStatus('Conversation paused', 'info');
         }
 
         function resetShow() {
@@ -380,6 +412,7 @@ Your turn as ${speakerNames[speaker]}. Reply concisely (max 2-3 sentences) and e
             document.getElementById('transcriptionArea').innerHTML = '<div style="text-align: center; color: #6b6b6b; padding: 40px;">Your AI conversation will appear here once you click START</div>';
             removeThinking();
             stopSpeech();
+            document.getElementById('statusArea').innerHTML = '';
         }
 
         // Event listeners
@@ -394,10 +427,12 @@ Your turn as ${speakerNames[speaker]}. Reply concisely (max 2-3 sentences) and e
             if (voiceEnabled) {
                 toggle.classList.add('active');
                 toggle.innerHTML = '🔊 Voice ON';
+                showStatus('Voice enabled', 'success');
             } else {
                 toggle.classList.remove('active');
                 toggle.innerHTML = '🔇 Voice OFF';
                 stopSpeech();
+                showStatus('Voice disabled', 'info');
             }
         });
 
@@ -405,7 +440,11 @@ Your turn as ${speakerNames[speaker]}. Reply concisely (max 2-3 sentences) and e
         speechSynthesis.onvoiceschanged = () => {
             console.log('Voices loaded:', speechSynthesis.getVoices().length);
         };
+
+        // Show initial status
+        window.addEventListener('load', () => {
+            showStatus('Ready! Enter a topic and click START to begin your AI conversation.', 'info');
+        });
     </script>
-    <script src="/temp_fixes.js"></script>
 </body>
 </html>
