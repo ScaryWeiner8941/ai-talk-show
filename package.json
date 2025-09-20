@@ -2,21 +2,20 @@
   "name": "ai-talk-show",
   "version": "1.0.0",
   "description": "AI Talk Show - Interactive AI Conversations",
-  "main": "index.js",
+  "main": "server.js",
   "scripts": {
-    "dev": "vercel dev",
+    "dev": "node server.js",
     "build": "echo 'No build step required'",
-    "start": "vercel --prod"
+    "start": "node server.js"
   },
-  "keywords": ["ai", "conversation", "talk-show", "claude", "chatgpt", "gemini"],
-  "author": "Your Name",
-  "license": "MIT",
   "dependencies": {
+    "bcryptjs": "^3.0.2",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.2",
+    "express": "^4.21.2",
+    "express-rate-limit": "^7.1.5",
+    "helmet": "^7.1.0",
     "jsonwebtoken": "^9.0.2",
-    "bcryptjs": "^2.4.3",
-    "cors": "^2.8.5"
-  },
-  "engines": {
-    "node": ">=18.0.0"
+    "pino": "^8.17.2"
   }
 }
