@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "node server.js",
     "build": "echo 'No build step required'",
-    "start": "node server.js"
+    "start": "node server.js",
+    "audit": "npm audit"
   },
   "dependencies": {
     "bcryptjs": "^3.0.2",

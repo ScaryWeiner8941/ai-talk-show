@@ -1,8 +1,8 @@
 {
+  "version": 2,
   "functions": {
-    "api/**/*.{js,ts,mjs}": {
-      "runtime": "nodejs20.x",
-      "maxDuration": 30
+    "api/**/*.{js,ts}": {
+      "runtime": "@vercel/node@3.2.17"
     }
   }
 }

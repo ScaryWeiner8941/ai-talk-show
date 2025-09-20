@@ -1,1 +1,411 @@
-<!doctype html><title>AI Talk Show</title><h1>OK</h1>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Talk Show</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: #1a1d29; color: white; padding: 20px; }
+        .container { max-width: 900px; margin: 0 auto; }
+        .header { text-align: center; margin-bottom: 40px; }
+        .logo { font-size: 3em; font-weight: 700; margin-bottom: 20px; background: linear-gradient(135deg, #ffffff 0%, #a0a0a0 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .form-group { margin-bottom: 20px; }
+        .form-label { display: block; margin-bottom: 8px; font-weight: 500; }
+        .form-input, .form-select { width: 100%; padding: 12px; background: #2a2d3a; border: 1px solid #3a3d4a; border-radius: 8px; color: white; font-size: 1em; }
+        .form-input:focus, .form-select:focus { border-color: #d2691e; outline: none; }
+        .btn { padding: 12px 24px; margin: 8px; background: #d2691e; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; }
+        .btn:hover:not(:disabled) { background: #bf5e1a; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-secondary { background: #4a4d5a; }
+        .btn-secondary:hover:not(:disabled) { background: #5a5d6a; }
+        .voice-controls { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
+        .voice-toggle { background: #2a2d3a; border: 1px solid #3a3d4a; color: white; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 0.9em; }
+        .voice-toggle.active { background: #d2691e; border-color: #d2691e; }
+        .speaking-indicator { display: inline-block; width: 8px; height: 8px; background: #4caf50; border-radius: 50%; margin-left: 8px; animation: pulse 1s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
+        .transcription-area { background: #222533; border: 1px solid #3a3d4a; border-radius: 8px; padding: 20px; min-height: 400px; max-height: 600px; overflow-y: auto; margin-top: 20px; }
+        .message { margin: 15px 0; padding: 15px; border-radius: 8px; max-width: 80%; position: relative; }
+        .message.host { background: #2d3748; margin-right: auto; }
+        .message.claude { background: #065f46; margin-left: auto; }
+        .message.chatgpt { background: #1e3a8a; margin-right: auto; }
+        .message.gemini { background: #7c2d12; margin-left: auto; }
+        .speaker { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; font-weight: bold; }
+        .avatar { width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; }
+        .avatar.host { background: #f7fafc; color: #2d3748; }
+        .avatar.claude { background: #10b981; color: white; }
+        .avatar.chatgpt { background: #3b82f6; color: white; }
+        .avatar.gemini { background: #ef4444; color: white; }
+        .thinking { text-align: center; color: #8b8b8b; font-style: italic; padding: 20px; }
+        .replay-btn { position: absolute; top: 8px; right: 8px; background: rgba(255,255,255,0.1); border: none; color: white; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.8em; }
+        .replay-btn:hover { background: rgba(255,255,255,0.2); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1 class="logo">AI Talk Show</h1>
+            <p style="color: #8b8b8b; margin-top: 10px;">🎙️ Experience immersive AI conversations with voice</p>
+        </div>
+        
+        <div class="form-group">
+            <label class="form-label">Conversation Topic</label>
+            <input type="text" id="topic" class="form-input" placeholder="Enter a topic for your AI conversation...">
+        </div>
+        
+        <div class="form-group">
+            <label class="form-label">Conversation Mode</label>
+            <select id="mode" class="form-select">
+                <option value="debate">Debate</option>
+                <option value="collaboration">Collaboration</option>
+                <option value="analysis">Analysis</option>
+                <option value="comedy">Comedy</option>
+            </select>
+        </div>
+        
+        <div class="voice-controls">
+            <button id="voiceToggle" class="voice-toggle active">🔊 Voice ON</button>
+            <span id="speakingIndicator" style="display: none;">
+                Speaking <span class="speaking-indicator"></span>
+            </span>
+        </div>
+        
+        <div>
+            <button id="startBtn" class="btn">▶ START</button>
+            <button id="pauseBtn" class="btn btn-secondary" disabled>⏸ PAUSE</button>
+            <button id="resetBtn" class="btn btn-secondary">↻ RESET</button>
+            <button id="stopSpeechBtn" class="btn btn-secondary">🔇 STOP VOICE</button>
+        </div>
+        
+        <div id="transcriptionArea" class="transcription-area">
+            <div style="text-align: center; color: #6b6b6b; padding: 40px;">Your AI conversation will appear here once you click START</div>
+        </div>
+    </div>
+
+    <script>
+        let authToken = null;
+        let isRunning = false;
+        let isPaused = false;
+        let currentTurn = 0;
+        let maxTurns = 12;
+        let conversation = [];
+        let voiceEnabled = true;
+        let currentUtterance = null;
+        
+        const speakers = ['claude', 'chatgpt', 'gemini'];
+        const speakerNames = { host: 'Host', claude: 'Claude', chatgpt: 'ChatGPT', gemini: 'Gemini' };
+
+        // Voice configuration for different speakers
+        const voiceConfig = {
+            claude: { rate: 0.9, pitch: 1.0, voiceIndex: 0 }, // Professional voice
+            chatgpt: { rate: 1.0, pitch: 1.1, voiceIndex: 1 }, // Friendly voice
+            gemini: { rate: 1.1, pitch: 1.2, voiceIndex: 2 }, // Dynamic voice
+            host: { rate: 0.95, pitch: 1.0, voiceIndex: 0 }
+        };
+
+        // Text-to-speech function
+        function speak(text, speaker = 'host') {
+            if (!voiceEnabled || !('speechSynthesis' in window)) return;
+            
+            // Stop any current speech
+            speechSynthesis.cancel();
+            
+            const utterance = new SpeechSynthesisUtterance(text);
+            const config = voiceConfig[speaker] || voiceConfig.host;
+            
+            // Get available voices
+            const voices = speechSynthesis.getVoices();
+            if (voices.length > 0) {
+                // Try to assign different voices to different speakers
+                let voiceIndex = config.voiceIndex;
+                if (speaker === 'claude' && voices.length > 3) voiceIndex = 0;
+                else if (speaker === 'chatgpt' && voices.length > 5) voiceIndex = Math.min(voices.length - 1, 5);
+                else if (speaker === 'gemini' && voices.length > 7) voiceIndex = Math.min(voices.length - 1, 7);
+                
+                utterance.voice = voices[voiceIndex] || voices[0];
+            }
+            
+            utterance.rate = config.rate;
+            utterance.pitch = config.pitch;
+            utterance.volume = 1.0;
+            
+            // Show speaking indicator
+            utterance.onstart = () => {
+                document.getElementById('speakingIndicator').style.display = 'inline-block';
+                currentUtterance = utterance;
+            };
+            
+            utterance.onend = () => {
+                document.getElementById('speakingIndicator').style.display = 'none';
+                currentUtterance = null;
+            };
+            
+            speechSynthesis.speak(utterance);
+        }
+
+        // Stop speech function
+        function stopSpeech() {
+            speechSynthesis.cancel();
+            document.getElementById('speakingIndicator').style.display = 'none';
+            currentUtterance = null;
+        }
+
+        async function authenticate(password) {
+            try {
+                const response = await fetch('/api/auth', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ password })
+                });
+                if (!response.ok) throw new Error('Invalid password');
+                const data = await response.json();
+                authToken = data.token;
+                return true;
+            } catch (error) {
+                throw new Error('Authentication failed');
+            }
+        }
+
+        async function callAI(speaker, prompt) {
+            try {
+                let endpoint;
+                switch(speaker) {
+                    case 'claude': endpoint = '/api/claude'; break;
+                    case 'chatgpt': endpoint = '/api/openai'; break;
+                    case 'gemini': endpoint = '/api/gemini'; break;
+                    default: throw new Error('Unknown speaker');
+                }
+                
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({ prompt })
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.error || `API failed: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                return data.response;
+            } catch (error) {
+                throw error;
+            }
+        }
+
+        function buildPrompt(topic, mode, speaker) {
+            const context = conversation.slice(-4).map(msg => `${msg.speaker}: ${msg.content}`).join('\n');
+            
+            const modeInstructions = {
+                debate: 'Take a clear position and present compelling arguments.',
+                collaboration: 'Build constructively on previous points and find common ground.',
+                analysis: 'Provide deep analytical insights and thoughtful perspectives.',
+                comedy: 'Add humor and wit while staying relevant to the topic.'
+            };
+
+            return `Mode: ${mode}
+Topic: ${topic}
+
+Recent conversation:
+${context}
+
+Your turn as ${speakerNames[speaker]}. Reply concisely (max 2-3 sentences) and engage meaningfully with the topic. ${modeInstructions[mode]}`;
+        }
+
+        async function startShow() {
+            const topic = document.getElementById('topic').value.trim();
+            const mode = document.getElementById('mode').value;
+            
+            if (!topic) {
+                alert('Please enter a discussion topic!');
+                return;
+            }
+            
+            if (isPaused) {
+                // Resume from pause
+                isPaused = false;
+                isRunning = true;
+                document.getElementById('startBtn').disabled = true;
+                document.getElementById('pauseBtn').disabled = false;
+                document.getElementById('startBtn').innerHTML = '▶ START';
+                
+                setTimeout(() => {
+                    nextAIResponse(topic, mode);
+                }, 1000);
+                return;
+            }
+            
+            const password = prompt('Enter password:');
+            if (!password) return;
+            
+            try {
+                await authenticate(password);
+            } catch (error) {
+                alert('Invalid password');
+                return;
+            }
+            
+            isRunning = true;
+            isPaused = false;
+            currentTurn = 0;
+            conversation = [];
+            
+            document.getElementById('startBtn').disabled = true;
+            document.getElementById('pauseBtn').disabled = false;
+            document.getElementById('topic').disabled = true;
+            document.getElementById('mode').disabled = true;
+            
+            document.getElementById('transcriptionArea').innerHTML = '';
+            
+            const welcomeMsg = `Welcome to AI Talk Show! Today we're exploring: "${topic}" in ${mode} mode. Let's hear what our AI guests have to say!`;
+            addMessage('host', welcomeMsg);
+            
+            setTimeout(() => {
+                nextAIResponse(topic, mode);
+            }, 2000);
+        }
+
+        async function nextAIResponse(topic, mode) {
+            if (!isRunning || isPaused || currentTurn >= maxTurns) {
+                if (currentTurn >= maxTurns && isRunning) {
+                    const endMsg = 'Thank you for experiencing AI Talk Show! The conversation has reached its natural conclusion.';
+                    addMessage('host', endMsg);
+                    setTimeout(() => resetShow(), 3000);
+                }
+                return;
+            }
+            
+            const currentSpeaker = speakers[currentTurn % speakers.length];
+            showThinking(currentSpeaker);
+            
+            try {
+                const prompt = buildPrompt(topic, mode, currentSpeaker);
+                const response = await callAI(currentSpeaker, prompt);
+                
+                removeThinking();
+                addMessage(currentSpeaker, response);
+                
+                currentTurn++;
+                
+                if (isRunning && !isPaused && currentTurn < maxTurns) {
+                    setTimeout(() => {
+                        nextAIResponse(topic, mode);
+                    }, 3000);
+                } else if (currentTurn >= maxTurns) {
+                    const endMsg = 'Thank you for experiencing AI Talk Show! The conversation has reached its natural conclusion.';
+                    addMessage('host', endMsg);
+                    setTimeout(() => resetShow(), 5000);
+                }
+                
+            } catch (error) {
+                removeThinking();
+                addMessage('host', `${speakerNames[currentSpeaker]} encountered an issue: ${error.message}`);
+                currentTurn++;
+                if (isRunning && !isPaused && currentTurn < maxTurns) {
+                    setTimeout(() => {
+                        nextAIResponse(topic, mode);
+                    }, 2000);
+                }
+            }
+        }
+
+        function addMessage(speaker, content) {
+            conversation.push({ speaker: speakerNames[speaker], content });
+            
+            const div = document.createElement('div');
+            div.className = `message ${speaker}`;
+            div.innerHTML = `
+                <div class="speaker">
+                    <div class="avatar ${speaker}">${speaker === 'host' ? 'H' : speaker === 'claude' ? 'C' : 'G'}</div>
+                    ${speakerNames[speaker]}
+                </div>
+                ${content}
+                ${speaker !== 'host' ? `<button class="replay-btn" onclick="speak('${content.replace(/'/g, "\\'")}', '${speaker}')">🔊</button>` : ''}
+            `;
+            document.getElementById('transcriptionArea').appendChild(div);
+            document.getElementById('transcriptionArea').scrollTop = document.getElementById('transcriptionArea').scrollHeight;
+            
+            // Auto-speak the message (except for host intro)
+            if (voiceEnabled && speaker !== 'host') {
+                setTimeout(() => speak(content, speaker), 500);
+            } else if (speaker === 'host' && content.includes('Welcome to AI Talk Show')) {
+                setTimeout(() => speak(content, speaker), 500);
+            }
+        }
+
+        function showThinking(speaker) {
+            const div = document.createElement('div');
+            div.className = 'thinking';
+            div.id = 'thinking-indicator';
+            div.innerHTML = `${speakerNames[speaker]} is formulating a response...`;
+            document.getElementById('transcriptionArea').appendChild(div);
+            document.getElementById('transcriptionArea').scrollTop = document.getElementById('transcriptionArea').scrollHeight;
+        }
+
+        function removeThinking() {
+            const thinking = document.getElementById('thinking-indicator');
+            if (thinking) thinking.remove();
+        }
+
+        function pauseShow() {
+            isPaused = true;
+            isRunning = false;
+            
+            document.getElementById('startBtn').disabled = false;
+            document.getElementById('pauseBtn').disabled = true;
+            document.getElementById('startBtn').innerHTML = '▶ RESUME';
+            
+            removeThinking();
+            addMessage('host', 'Conversation paused. Click "RESUME" to continue the discussion.');
+            stopSpeech();
+        }
+
+        function resetShow() {
+            isRunning = false;
+            isPaused = false;
+            currentTurn = 0;
+            conversation = [];
+            
+            document.getElementById('startBtn').disabled = false;
+            document.getElementById('pauseBtn').disabled = true;
+            document.getElementById('topic').disabled = false;
+            document.getElementById('mode').disabled = false;
+            document.getElementById('topic').value = '';
+            document.getElementById('mode').value = 'debate';
+            document.getElementById('startBtn').innerHTML = '▶ START';
+            
+            document.getElementById('transcriptionArea').innerHTML = '<div style="text-align: center; color: #6b6b6b; padding: 40px;">Your AI conversation will appear here once you click START</div>';
+            removeThinking();
+            stopSpeech();
+        }
+
+        // Event listeners
+        document.getElementById('startBtn').addEventListener('click', startShow);
+        document.getElementById('pauseBtn').addEventListener('click', pauseShow);
+        document.getElementById('resetBtn').addEventListener('click', resetShow);
+        document.getElementById('stopSpeechBtn').addEventListener('click', stopSpeech);
+
+        document.getElementById('voiceToggle').addEventListener('click', () => {
+            voiceEnabled = !voiceEnabled;
+            const toggle = document.getElementById('voiceToggle');
+            if (voiceEnabled) {
+                toggle.classList.add('active');
+                toggle.innerHTML = '🔊 Voice ON';
+            } else {
+                toggle.classList.remove('active');
+                toggle.innerHTML = '🔇 Voice OFF';
+                stopSpeech();
+            }
+        });
+
+        // Load voices when available
+        speechSynthesis.onvoiceschanged = () => {
+            console.log('Voices loaded:', speechSynthesis.getVoices().length);
+        };
+    </script>
+    <script src="/temp_fixes.js"></script>
+</body>
+</html>

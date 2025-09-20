@@ -1,89 +1,95 @@
-// api/ai/claude.js
 import jwt from 'jsonwebtoken';
 
-export default async function handler(req, res) {
-  // Enable CORS
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-change-in-production';
+const CLAUDE_API_KEY = process.env.CLAUDE_API_KEY;
 
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
-
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
-
-  try {
-    // Verify authentication
+function verifyToken(req) {
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({ error: 'Authentication required' });
+        throw new Error('No token provided');
+    }
+    
+    const token = authHeader.substring(7);
+    return jwt.verify(token, JWT_SECRET);
+}
+
+export default async function handler(req, res) {
+    // Set CORS headers
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+    if (req.method === 'OPTIONS') {
+        return res.status(200).end();
     }
 
-    const token = authHeader.split(' ')[1];
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret-key');
-
-    if (!decoded.authenticated) {
-      return res.status(401).json({ error: 'Invalid authentication' });
+    if (req.method !== 'POST') {
+        return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
 
-    // Get Claude API key from environment
-    const claudeApiKey = process.env.CLAUDE_API_KEY;
-    if (!claudeApiKey) {
-      console.error('CLAUDE_API_KEY environment variable not set');
-      return res.status(500).json({ error: 'Server configuration error' });
+    try {
+        // Verify JWT token
+        verifyToken(req);
+
+        let body;
+        if (typeof req.body === 'string') {
+            body = JSON.parse(req.body);
+        } else {
+            body = req.body;
+        }
+        const { prompt, maxTokens = 300 } = body;
+
+        if (!prompt) {
+            return res.status(400).json({ success: false, error: 'Prompt is required' });
+        }
+
+        if (!CLAUDE_API_KEY) {
+            return res.status(200).json({
+                success: true,
+                response: "Hello! I'm Claude. I'm currently in demo mode since no API key is configured. In a real deployment, I would use the Anthropic API to provide intelligent responses to your questions."
+            });
+        }
+
+        // Call Claude API
+        const response = await fetch('https://api.anthropic.com/v1/messages', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'x-api-key': CLAUDE_API_KEY,
+                'anthropic-version': '2023-06-01'
+            },
+            body: JSON.stringify({
+                model: 'claude-3-sonnet-20240229',
+                max_tokens: maxTokens,
+                messages: [{
+                    role: 'user',
+                    content: prompt
+                }]
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error(`Claude API error: ${response.status}`);
+        }
+
+        const data = await response.json();
+        const aiResponse = data.content?.[0]?.text || 'Sorry, I could not generate a response.';
+
+        res.status(200).json({
+            success: true,
+            response: aiResponse
+        });
+
+    } catch (error) {
+        console.error('Claude API error:', error);
+        
+        if (error.name === 'JsonWebTokenError') {
+            return res.status(401).json({ success: false, error: 'Invalid token' });
+        }
+        
+        res.status(500).json({ 
+            success: false, 
+            error: 'Failed to get response from Claude' 
+        });
     }
-
-    // Get request data
-    const { prompt, maxTokens = 300 } = req.body;
-
-    if (!prompt) {
-      return res.status(400).json({ error: 'Prompt is required' });
-    }
-
-    // Call Claude API
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': claudeApiKey,
-        'anthropic-version': '2023-06-01'
-      },
-      body: JSON.stringify({
-        model: 'claude-3-sonnet-20240229',
-        max_tokens: maxTokens,
-        messages: [{ role: 'user', content: prompt }]
-      })
-    });
-
-    if (!response.ok) {
-      const errorData = await response.text();
-      console.error('Claude API error:', response.status, errorData);
-      return res.status(500).json({ error: 'Failed to generate response' });
-    }
-
-    const data = await response.json();
-
-    // Log usage (without sensitive data)
-    console.log('Claude API call completed:', {
-      timestamp: new Date().toISOString(),
-      tokens: data.usage?.output_tokens || 'unknown'
-    });
-
-    res.status(200).json({
-      success: true,
-      response: data.content[0].text,
-      usage: data.usage
-    });
-
-  } catch (error) {
-    if (error.name === 'JsonWebTokenError' || error.name === 'TokenExpiredError') {
-      return res.status(401).json({ error: 'Invalid or expired token' });
-    }
-
-    console.error('Claude API handler error:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
 }
